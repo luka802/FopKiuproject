@@ -1,0 +1,148 @@
+public class Main {
+
+    // 1. Sum of First N Numbers
+    public static int sumOfFirstN(int n) {
+        int sum = 0;
+        for (int i = 1; i <= n; i++) {
+            sum += i;
+        }
+        return sum;
+    }
+
+    // 2. Factorial of N
+    public static int factorial(int n) {
+        int result = 1;
+        for (int i = 2; i <= n; i++) {
+            result *= i;
+        }
+        return result;
+    }
+
+    // 3. GCD of Two Numbers
+    public static int gcd(int a, int b) {
+        while (b != 0) {
+            int temp = b;
+            b = a % b;
+            a = temp;
+        }
+        return a;
+    }
+
+    // 4. Reverse a Number
+    public static int reverseNumber(int n) {
+        int reversed = 0;
+        while (n > 0) {
+            reversed = reversed * 10 + n % 10;
+            n /= 10;
+        }
+        return reversed;
+    }
+
+    // 5. Check if a Number is Prime
+    public static boolean isPrime(int n) {
+        if (n <= 1) return false;
+        for (int i = 2; i * i <= n; i++) {
+            if (n % i == 0) return false;
+        }
+        return true;
+    }
+
+    // 6. Check if a Number is Palindrome
+    public static boolean isPalindrome(int n) {
+        return n == reverseNumber(n);
+    }
+
+    // 7. Find the Largest Digit in a Number
+    public static int largestDigit(int n) {
+        int maxDigit = 0;
+        while (n > 0) {
+            int digit = n % 10;
+            if (digit > maxDigit) {
+                maxDigit = digit;
+            }
+            n /= 10;
+        }
+        return maxDigit;
+    }
+
+    // 8. Sum of Digits
+    public static int sumOfDigits(int n) {
+        int sum = 0;
+        while (n > 0) {
+            sum += n % 10;
+            n /= 10;
+        }
+        return sum;
+    }
+
+    // 9. Multiplication Table
+    public static void multiplicationTable(int n) {
+        for (int i = 1; i <= 10; i++) {
+            System.out.println(n * i);
+        }
+    }
+
+    // 10. Nth Fibonacci Number
+    public static int nthFibonacci(int n) {
+        if (n <= 1) return n;
+        int a = 0, b = 1;
+        for (int i = 2; i <= n; i++) {
+            int temp = a + b;
+            a = b;
+            b = temp;
+        }
+        return b;
+    }
+
+    // Process variables
+    public static void processVariables() {
+        Integer x1 = null, x2 = null, x3 = null, y3 = null, x4 = null, x5 = null, x6 = null, x7 = null, x8 = null, x9 = null, x10 = null;
+
+        if (x1 != null) {
+            System.out.println("Sum of First " + x1 + " Numbers: " + sumOfFirstN(x1));
+            x1 = 0;
+        }
+        if (x2 != null) {
+            System.out.println("Factorial of " + x2 + ": " + factorial(x2));
+            x2 = null;
+        }
+        if (x3 != null && y3 != null) {
+            System.out.println("GCD of " + x3 + " and " + y3 + ": " + gcd(x3, y3));
+            x3 = null;
+        }
+        if (x4 != null) {
+            System.out.println("Reverse of " + x4 + ": " + reverseNumber(x4));
+            x4 = null;
+        }
+        if (x5 != null) {
+            System.out.println("Is " + x5 + " Prime? " + isPrime(x5));
+            x5 = null;
+        }
+        if (x6 != null) {
+            System.out.println("Is " + x6 + " Palindrome? " + isPalindrome(x6));
+            x6 = null;
+        }
+        if (x7 != null) {
+            System.out.println("Largest Digit in " + x7 + ": " + largestDigit(x7));
+            x7 = null;
+        }
+        if (x8 != null) {
+            System.out.println("Sum of Digits of " + x8 + ": " + sumOfDigits(x8));
+            x8 = null;
+        }
+        if (x9 != null) {
+            System.out.println("Multiplication Table for " + x9 + ":");
+            multiplicationTable(x9);
+            x9 = null;
+        }
+        if (x10 != null) {
+            System.out.println("nth Fibonacci Number: " + nthFibonacci(x10));
+            x10 = null;
+        }
+    }
+
+    // Main method
+    public static void main(String[] args) {
+        processVariables();
+    }
+}
