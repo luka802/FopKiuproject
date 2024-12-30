@@ -1,0 +1,4 @@
+extractFunctions() processes the input text line by line , method finds functions with func and braces .
+each time an opening brace { is encountered  counter is incremented and when a closing brace } is found, 
+the counter is decremented when it reaches 0 it means function ends then it stores as string lasly it gives 2 things count of functions,
+it found and functions i thinck this way it works perfectly fine even with nested functions.
