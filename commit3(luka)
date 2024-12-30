@@ -1,0 +1,185 @@
+//in the end we thought that prvous code was not helping as we wanted to create interpreter that could work on multiple types of same function we are on a part where we kinda gave up and tried to find answer on the internet 
+//(which doesnt go against rules since we were told to use any tools aviable and simply learning new ways would never go against something like that) and we found regex really useful . i told yase to work on a function that could simply find functions in go language while me and tina started learning regex 
+
+
+
+
+
+
+import java.util.ArrayList;
+
+public class Main {
+    public static void main(String[] args) {
+        // input text containing functions
+        String text = """
+              
+              // Sum of First N Numbers
+                  package main
+                
+                  import "fmt"
+                
+                  func sumOfFirstN(n int) int {
+                      sum := 0
+                      for i := 1; i <= n; i++ {
+                          sum += i
+                      }
+                      return sum
+                  }
+                
+                  // Factorial of N
+                  func factorial(n int) int {
+                      if n == 0 {
+                          return 1
+                      }
+                      result := 1
+                      for i := 1; i <= n; i++ {
+                          result *= i
+                      }
+                      return result
+                  }
+                
+                  // GCD of Two Numbers
+                  func gcd(a, b int) int {
+                      for b != 0 {
+                          a, b = b, a%b
+                      }
+                      return a
+                  }
+                
+                  // Reverse a Number
+                  func reverseNumber(n int) int {
+                      reversed := 0
+                      for n > 0 {
+                          reversed = reversed*10 + n%10
+                          n /= 10
+                      }
+                      return reversed
+                  }
+                
+                  // Check if a Number is Prime
+                  func isPrime(n int) bool {
+                      if n <= 1 {
+                          return false
+                      }
+                      for i := 2; i*i <= n; i++ {
+                          if n%i == 0 {
+                              return false
+                          }
+                      }
+                      return true
+                  }
+                
+                  // Check if a Number is Palindrome
+                  func isPalindrome(n int) bool {
+                      reversed := reverseNumber(n)
+                      return n == reversed
+                  }
+                
+                  // Find the Largest Digit in a Number
+                  func largestDigit(n int) int {
+                      maxDigit := 0
+                      for n > 0 {
+                          digit := n % 10
+                          if digit > maxDigit {
+                              maxDigit = digit
+                          }
+                          n /= 10
+                      }
+                      return maxDigit
+                  }
+                
+                  // Sum of Digits
+                  func sumOfDigits(n int) int {
+                      sum := 0
+                      for n > 0 {
+                          sum += n % 10
+                          n /= 10
+                      }
+                      return sum
+                  }
+                
+                  // Multiplication Table
+                  func multiplicationTable(n int) {
+                      for i := 1; i <= 10; i++ {
+                          fmt.Println(n * i)
+                      }
+                  }
+                
+                  // Nth Fibonacci Number
+                  func fibonacci(n int) int {
+                      if n <= 1 {
+                          return n
+                      }
+                      a, b := 0, 1
+                      for i := 2; i <= n; i++ {
+                          a, b = b, a+b
+                      }
+                      return b
+                  }
+                
+            """;
+
+        // process the input to count and extract functions
+        FunctionResult result = extractFunctions(text);
+
+        // print the count
+        System.out.println("Number of functions (X): " + result.count);
+
+        // print the extracted functions
+        System.out.println("Extracted Functions:");
+        for (String function : result.functions) {
+            System.out.println(function);
+        }
+    }
+
+    // method to extract functions and count them
+    public static FunctionResult extractFunctions(String input) {
+        if (input == null || input.isEmpty()) {
+            return new FunctionResult(0, new String[0]);
+        }
+
+        ArrayList<String> functions = new ArrayList<>();
+        String[] lines = input.split("\r\n|\r|\n");
+
+        StringBuilder currentFunction = new StringBuilder();
+        boolean inFunction = false;
+        int braceCount = 0;
+
+        for (String line : lines) {
+            if (line.trim().startsWith("func ") && !inFunction) { // Start of a function
+                inFunction = true;
+                braceCount = 0; // reset brace count for new function
+            }
+
+            if (inFunction) {
+                currentFunction.append(line).append("\n");
+                // update brace count
+                for (char ch : line.toCharArray()) {
+                    if (ch == '{') braceCount++;
+                    else if (ch == '}') braceCount--;
+                }
+
+                // end of the function when brace count balances to zero
+                if (braceCount == 0) {
+                    inFunction = false;
+                    functions.add(currentFunction.toString());
+                    currentFunction.setLength(0); // reset for next function
+                }
+            }
+        }
+
+        // return the results
+        return new FunctionResult(functions.size(), functions.toArray(new String[0]));
+    }
+}
+
+// helper class to store the results
+class FunctionResult {
+    int count;
+    String[] functions;
+
+    public FunctionResult(int count, String[] functions) {
+        this.count = count;
+        this.functions = functions;
+    }
+}
