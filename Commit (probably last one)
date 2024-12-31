@@ -1,0 +1,12 @@
+After thinking a lot about how we could write this, we decided to simply do what compiler would do and it worked well .
+
+
+For variable declarations, we looked for the := or = symbols. The part on the left of the symbol was treated as the variable name, and the part on the right as the value or expression. 
+
+For if-else statements, we told our code to check if the condition after if was true. Based on that result, the program chose which {} of code to execute.
+
+For while loops, the logic was similar. The program kept running the loop body as long as the condition remained true. Each time, it re-evaluated the condition before deciding whether to execute the loop again.
+
+For expressions, we imitated how the compiler evaluates them by replacing variables with their values and performing arithmetic operations like addition and multiplication. It wasn't full-blown expression parsing but enough to handle simple cases correctly.
+
+This way, the program behaved as if it were a mini Go interpreter, processing the code step by step and simulating how it would run in an actual compiler. Also, god bless regex 
