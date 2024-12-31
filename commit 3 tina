@@ -1,0 +1,197 @@
+import java.util.*;
+import java.util.regex.*;
+
+public class Main {
+    static class Variable {
+        enum Type { INT, DOUBLE, STRING, BOOLEAN, EXPRESSION }
+        Type type;
+        Object value;
+
+        Variable(Type type, Object value) {
+            this.type = type;
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return value.toString();
+        }
+
+        int asInt() {
+            return type == Type.INT ? (int) value : 0;
+        }
+
+        double asDouble() {
+            return type == Type.DOUBLE ? (double) value : 0.0;
+        }
+
+        boolean asBoolean() {
+            return type == Type.BOOLEAN ? (boolean) value : false;
+        }
+    }
+
+    public static Map<String, Variable> parseGoAssignments(String goCode) {
+        Map<String, Variable> variables = new HashMap<>();
+        String regex = "\\b(\\w+)\\s*(?::=|=)\\s*(.+)";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(goCode);
+
+        while (matcher.find()) {
+            String varName = matcher.group(1).trim();
+            String rawValue = matcher.group(2).trim();
+            variables.put(varName, parseValue(rawValue, variables));
+        }
+
+        return variables;
+    }
+
+    private static Variable parseValue(String rawValue, Map<String, Variable> variables) {
+        if (rawValue.matches("\".*\"")) {
+            return new Variable(Variable.Type.STRING, rawValue.replaceAll("\"", ""));
+        } else if (rawValue.matches("\\d+")) {
+            return new Variable(Variable.Type.INT, Integer.parseInt(rawValue));
+        } else if (rawValue.matches("\\d+\\.\\d+")) {
+            return new Variable(Variable.Type.DOUBLE, Double.parseDouble(rawValue));
+        } else if (rawValue.equals("true") || rawValue.equals("false")) {
+            return new Variable(Variable.Type.BOOLEAN, Boolean.parseBoolean(rawValue));
+        } else if (variables.containsKey(rawValue)) {
+            return variables.get(rawValue); // Resolve variable value
+        } else {
+            return new Variable(Variable.Type.EXPRESSION, rawValue);
+        }
+    }
+
+    public static void processLoops(String goCode, Map<String, Variable> variables) {
+        String loopRegex = "for\\s+([^\\{]+)\\s*\\{([^\\}]*)\\}";
+        Pattern pattern = Pattern.compile(loopRegex);
+        Matcher matcher = pattern.matcher(goCode);
+
+        while (matcher.find()) {
+            String condition = matcher.group(1).trim();
+            String body = matcher.group(2).trim();
+
+            while (evaluateCondition(condition, variables)) {
+                parseGoAssignments(body).forEach((key, value) -> {
+                    if (value.type == Variable.Type.EXPRESSION) {
+                        variables.put(key, new Variable(Variable.Type.INT, evaluateExpression(value.toString(), variables)));
+                    } else {
+                        variables.put(key, value);
+                    }
+                });
+            }
+        }
+    }
+
+    private static boolean evaluateCondition(String condition, Map<String, Variable> variables) {
+        String[] parts = condition.split("\\s*(<|>|==|!=|<=|>=)\\s*");
+        if (parts.length != 2) return false;
+
+        String left = parts[0].trim();
+        String right = parts[1].trim();
+        String operator = condition.replaceAll("[^<>=!]+", "").trim();
+
+        int leftVal = evaluateExpression(left, variables);
+        int rightVal = evaluateExpression(right, variables);
+
+        return switch (operator) {
+            case "<" -> leftVal < rightVal;
+            case ">" -> leftVal > rightVal;
+            case "==" -> leftVal == rightVal;
+            case "!=" -> leftVal != rightVal;
+            case "<=" -> leftVal <= rightVal;
+            case ">=" -> leftVal >= rightVal;
+            default -> false;
+        };
+    }
+
+    public static void processPrint(String goCode, Map<String, Variable> variables) {
+        String printRegex = "print\\(([^\\)]+)\\)";
+        Pattern pattern = Pattern.compile(printRegex);
+        Matcher matcher = pattern.matcher(goCode);
+
+        while (matcher.find()) {
+            String expression = matcher.group(1).trim();
+            int result = evaluateExpression(expression, variables);
+            System.out.println(result);
+        }
+    }
+
+    public static int processReturn(String goCode, Map<String, Variable> variables) {
+        String returnRegex = "return\\s+(.+)";
+        Pattern pattern = Pattern.compile(returnRegex);
+        Matcher matcher = pattern.matcher(goCode);
+
+        if (matcher.find()) {
+            String expression = matcher.group(1).trim();
+            return evaluateExpression(expression, variables);
+        }
+
+        return 0;
+    }
+
+    private static int evaluateExpression(String expression, Map<String, Variable> variables) {
+        for (Map.Entry<String, Variable> entry : variables.entrySet()) {
+            expression = expression.replaceAll("\\b" + entry.getKey() + "\\b", entry.getValue().toString());
+        }
+        return simpleArithmetic(expression);
+    }
+
+    private static int simpleArithmetic(String expression) {
+        expression = expression.replaceAll("\\s+", "");
+        Deque<Integer> stack = new ArrayDeque<>();
+        char operator = '+';
+        int number = 0;
+
+        for (int i = 0; i < expression.length(); i++) {
+            char ch = expression.charAt(i);
+
+            if (Character.isDigit(ch)) {
+                number = number * 10 + (ch - '0');
+            }
+
+            if (!Character.isDigit(ch) || i == expression.length() - 1) {
+                if (operator == '+') stack.push(number);
+                else if (operator == '-') stack.push(-number);
+                else if (operator == '*') stack.push(stack.pop() * number);
+                else if (operator == '/') stack.push(stack.pop() / number);
+                else if (operator == '%') stack.push(stack.pop() % number);
+
+                operator = ch;
+                number = 0;
+            }
+        }
+
+        int result = 0;
+        while (!stack.isEmpty()) result += stack.pop();
+        return result;
+    }
+
+    public static void main(String[] args) {
+        String sumAlgorithm = """
+            N := 10
+            sum := 0
+            i := 1
+            for i <= N {
+                sum = sum + i
+                i = i + 1
+            }
+            print(sum)
+            return sum
+        """;
+
+        runAlgorithm("Sum of First N Numbers", sumAlgorithm);
+    }
+
+    private static void runAlgorithm(String name, String code) {
+        System.out.println("Running: " + name);
+        Map<String, Variable> variables = parseGoAssignments(code);
+        processLoops(code, variables);
+        processPrint(code, variables);
+        int returnValue = processReturn(code, variables);
+
+        System.out.println("Variables after execution:");
+        variables.forEach((key, value) -> System.out.println(key + " = " + value));
+        System.out.println("Return value = " + returnValue);
+        System.out.println("----------");
+    }
+}
