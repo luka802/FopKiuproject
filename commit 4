@@ -1,0 +1,5 @@
+The first problem was handling expressions like a = a * b correctly. It was simply not working.
+Later we realized that we could solve it with calculatinf right side first then giving that value to the left side
+
+We then ran into trouble with nested functions like if statements inside while loops.
+The braces would get messy. We fixed this by evaluating the if condition first and then dealing with the while loop.
