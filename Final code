@@ -1,0 +1,374 @@
+import java.util.*;
+
+public class Main {
+    static Map<String, Integer> variables = new HashMap<>();
+    static boolean isBoolean = false;
+
+    // Function to interpret the code provided as a string.
+    private static void interpret(String code) {
+        String[] functions = code.split("func ");
+        for (String function : functions) {
+            if (function.trim().isEmpty()) continue;
+
+            if (function.startsWith("main()")) {
+                interpretMain(function);
+                continue;
+            }
+
+            String functionName = function.substring(0, function.indexOf("{")).trim();
+            if (functionName.contains("()")) {
+                functionName = functionName.substring(0, functionName.indexOf("()"));
+                String body = function.substring(function.indexOf("{") + 1, findMatchingBrace(function, function.indexOf("{")));
+                interpretFunction(body);
+            }
+        }
+    }
+
+    // Function to interpret the main() function, which is the entry point.
+    private static void interpretMain(String mainFunc) {
+        String body = mainFunc.substring(mainFunc.indexOf("{") + 1, mainFunc.lastIndexOf("}")).trim();
+        String[] calls = body.split("\n");
+        for (String call : calls) {
+            call = call.trim();
+            if (call.endsWith("()")) {
+                variables.clear();
+                isBoolean = false;
+            }
+        }
+    }
+
+    // Function to interpret a custom-defined function in the code.
+    private static void interpretFunction(String body) {
+        variables.clear();
+        isBoolean = false;
+        String[] lines = body.split("\n");
+        int i = 0;
+        while (i < lines.length) {
+            String line = lines[i].trim();
+            if (line.isEmpty() || line.startsWith("//")) {
+                i++;
+                continue;
+            }
+
+            if (line.startsWith("for")) {
+                i = handleForLoop(lines, i);
+            } else if (line.startsWith("if")) {
+                handleIfStatement(line);
+            } else if (line.startsWith("fmt.Println")) {
+                handlePrint(line);
+            } else {
+                processLine(line);
+            }
+            i++;
+        }
+    }
+
+    // Function to handle for loops in the code.
+    private static int handleForLoop(String[] lines, int start) {
+        String line = lines[start].trim();
+        int braceIndex = line.indexOf("{");
+        String condition = line.substring(3, braceIndex).trim();
+
+        List<String> loopBody = new ArrayList<>();
+        int i = start + 1;
+        int braceCount = 1;
+
+        while (i < lines.length && braceCount > 0) {
+            String currentLine = lines[i].trim();
+            if (currentLine.contains("{")) braceCount++;
+            if (currentLine.contains("}")) braceCount--;
+            if (braceCount > 0) loopBody.add(currentLine);
+            i++;
+        }
+
+        while (evaluateCondition(condition)) {
+            for (String bodyLine : loopBody) {
+                if (bodyLine.startsWith("if")) {
+                    handleIfStatement(bodyLine);
+                } else if (bodyLine.startsWith("fmt.Println")) {
+                    handlePrint(bodyLine);
+                } else {
+                    processLine(bodyLine);
+                }
+            }
+        }
+
+        return i - 1;
+    }
+
+    // Function to handle print statements (fmt.Println) in the code.
+    private static void handlePrint(String line) {
+        String expr = line.substring(line.indexOf("(") + 1, line.lastIndexOf(")")).trim();
+        if (isBoolean) {
+            System.out.println(variables.get(expr) == 1 ? "true" : "false");
+        } else if (variables.containsKey(expr)) {
+            System.out.println(variables.get(expr));
+        } else {
+            System.out.println(evaluateExpression(expr));
+        }
+    }
+
+    // Function to handle if statements in the code.
+    private static void handleIfStatement(String line) {
+        int firstBrace = line.indexOf("{");
+        String condition = line.substring(2, firstBrace).trim();
+        String trueBlock = line.substring(firstBrace + 1, findMatchingBrace(line, firstBrace)).trim();
+
+        if (evaluateCondition(condition)) {
+            processLine(trueBlock);
+        }
+    }
+
+    // Helper function to find the matching closing brace.
+    private static int findMatchingBrace(String text, int openBraceIndex) {
+        int count = 1;
+        for (int i = openBraceIndex + 1; i < text.length(); i++) {
+            if (text.charAt(i) == '{') count++;
+            if (text.charAt(i) == '}') count--;
+            if (count == 0) return i;
+        }
+        return text.length();
+    }
+
+    // Function to process a single line of code.
+    private static void processLine(String line) {
+        if (line.contains("++")) {
+            String var = line.replace("++", "").trim();
+            variables.put(var, variables.get(var) + 1);
+        } else if (line.contains("--")) {
+            String var = line.replace("--", "").trim();
+            variables.put(var, variables.get(var) - 1);
+        } else if (line.contains("+=")) {
+            String[] parts = line.split("\\+=");
+            String var = parts[0].trim();
+            variables.put(var, variables.get(var) + evaluateExpression(parts[1].trim()));
+        } else if (line.contains("*=")) {
+            String[] parts = line.split("\\*=");
+            String var = parts[0].trim();
+            variables.put(var, variables.get(var) * evaluateExpression(parts[1].trim()));
+        } else if (line.contains("/=")) {
+            String[] parts = line.split("/=");
+            String var = parts[0].trim();
+            variables.put(var, variables.get(var) / evaluateExpression(parts[1].trim()));
+        } else if (line.contains(":=")) {
+            if (line.contains(",")) {
+                String[] assignments = line.split(":=");
+                String[] vars = assignments[0].split(",");
+                String[] values = assignments[1].split(",");
+                for (int i = 0; i < vars.length; i++) {
+                    variables.put(vars[i].trim(), evaluateExpression(values[i].trim()));
+                }
+            } else {
+                String[] parts = line.split(":=");
+                String var = parts[0].trim();
+                if (parts[1].trim().equals("true")) {
+                    variables.put(var, 1);
+                    isBoolean = true;
+                } else if (parts[1].trim().equals("false")) {
+                    variables.put(var, 0);
+                    isBoolean = true;
+                } else {
+                    variables.put(var, evaluateExpression(parts[1].trim()));
+                }
+            }
+        } else if (line.contains("=")) {
+            String[] parts = line.split("=");
+            String var = parts[0].trim();
+            variables.put(var, evaluateExpression(parts[1].trim()));
+        }
+    }
+
+    // Function to evaluate a condition (e.g., for if or for).
+    private static boolean evaluateCondition(String condition) {
+        String[] parts;
+        if (condition.contains("<=")) parts = condition.split("<=");
+        else if (condition.contains(">=")) parts = condition.split(">=");
+        else if (condition.contains("!=")) parts = condition.split("!=");
+        else if (condition.contains("==")) parts = condition.split("==");
+        else if (condition.contains("<")) parts = condition.split("<");
+        else if (condition.contains(">")) parts = condition.split(">");
+        else return false;
+
+        int left = evaluateExpression(parts[0].trim());
+        int right = evaluateExpression(parts[1].trim());
+
+        if (condition.contains("<=")) return left <= right;
+        if (condition.contains(">=")) return left >= right;
+        if (condition.contains("!=")) return left != right;
+        if (condition.contains("==")) return left == right;
+        if (condition.contains("<")) return left < right;
+        if (condition.contains(">")) return left > right;
+        return false;
+    }
+
+    // Function to evaluate a mathematical expression.
+    private static int evaluateExpression(String expr) {
+        expr = expr.trim();
+        if (variables.containsKey(expr)) return variables.get(expr);
+        try {
+            return Integer.parseInt(expr);
+        } catch (NumberFormatException e) {}
+
+        if (expr.contains("%")) {
+            String[] parts = expr.split("%");
+            return evaluateExpression(parts[0].trim()) % evaluateExpression(parts[1].trim());
+        }
+        if (expr.contains("+")) {
+            String[] parts = expr.split("\\+");
+            return evaluateExpression(parts[0].trim()) + evaluateExpression(parts[1].trim());
+        }
+        if (expr.contains("-")) {
+            String[] parts = expr.split("-");
+            return evaluateExpression(parts[0].trim()) - evaluateExpression(parts[1].trim());
+        }
+        if (expr.contains("*")) {
+            String[] parts = expr.split("\\*");
+            return evaluateExpression(parts[0].trim()) * evaluateExpression(parts[1].trim());
+        }
+        if (expr.contains("/")) {
+            String[] parts = expr.split("/");
+            int divisor = evaluateExpression(parts[1].trim());
+            if (divisor == 0) return 0;
+            return evaluateExpression(parts[0].trim()) / divisor;
+        }
+        return 0;
+    }
+
+    // Main function to run the program.
+    public static void main(String[] args) {
+        String code ="""
+        
+                        func sumOfFirstNNumbers() {
+                            result := 0
+                            i := 1
+                            n := 10
+                            for i <= n {
+                                result += i
+                                i++
+                            }
+                            fmt.Println(result)  
+                        }
+                        
+                        func factorial() {
+                            result := 1
+                            i := 1
+                            n := 5
+                            for i <= n {
+                                result *= i
+                                i++
+                            }
+                            fmt.Println(result) 
+                        }
+                        
+                        func gcd() {
+                            a := 48
+                            b := 18
+                            for b != 0 {
+                                temp := b
+                                b = a % b
+                                a = temp
+                            }
+                            fmt.Println(a) 
+                        }
+                        
+                        func reverseNumber() {
+                            n := 1234
+                            reversed := 0
+                            for n != 0 {
+                                digit := n % 10
+                                reversed = reversed*10 + digit
+                                n /= 10
+                            }
+                            fmt.Println(reversed)  
+                        }
+                        
+                        func isPrime() {
+                            n := 12
+                            isPrime := true
+                            i := 2
+                            for i*i <= n {
+                                if n%i == 0 {
+                                    isPrime = false
+                                    break
+                                }
+                                i++
+                            }
+                            fmt.Println(isPrime)  
+                        }
+                        
+                        func isPalindrome() {
+                            n := 122
+                            original := n
+                            reversed := 0
+                            for n != 0 {
+                                digit := n % 10
+                                reversed = reversed*10 + digit
+                                n /= 10
+                            }
+                            fmt.Println(original == reversed)  
+                        }
+                        
+                        func largestDigit() {
+                            n := 9347
+                            largest := 0
+                            for n != 0 {
+                                digit := n % 10
+                                if digit > largest {
+                                    largest = digit
+                                }
+                                n /= 10
+                            }
+                            fmt.Println(largest) 
+                         }
+                        
+                        
+                        func sumOfDigits() {
+                            n := 2234
+                            sum := 0
+                            for n != 0 {
+                                sum += n % 10
+                                n /= 10
+                            }
+                            fmt.Println(sum)  
+                        }
+                        
+                        func multiplicationTable() {
+                            n := 5
+                            i := 1
+                            for i <= 10 {
+                                fmt.Println(n * i)
+                                i++
+                            }
+                        }
+                        
+                        func fibonacci() {
+                            n := 10
+                            a := 0
+                            b := 1
+                            i := 2
+                            for i <= n {
+                                temp := b
+                                b = a + b
+                                a = temp
+                                i++
+                            }
+                            fmt.Println(b) 
+                        }
+                        
+                        func main() {
+                            sumOfFirstNNumbers()
+                            factorial()
+                            gcd()
+                            reverseNumber()
+                            isPrime()
+                            isPalindrome()
+                            largestDigit()
+                            sumOfDigits()
+                            multiplicationTable()
+                            fibonacci()
+                        } """
+        ;
+
+        interpret(code);
+    }
+}
